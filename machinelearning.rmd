@@ -1,0 +1,82 @@
+---
+title: "Machine Learning Course Project"
+author: "Anik"
+date: "9/30/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Introduction 
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, my goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. 
+
+We have analyzed and interpreted our findings with help of machine learning algorithms.We cleaned our data for our analysis for relevant study.
+
+```{r,echo=TRUE}
+library(caret)
+library(rpart.plot)
+library(rpart)
+library(randomForest)
+library(rattle)
+```
+
+```{r,echo=TRUE}
+training <- read.csv('training_data.csv', na.strings = c("NA", "#DIV/0!", ""))
+testing <- read.csv('testing_data.csv', na.strings = c("NA", "#DIV/0!", ""))
+```
+
+# Data Cleaning
+
+Step 1: We first remove those columns that has more than 95% of the observation as NA. We will filter out those records.
+
+```{r,echo=TRUE}
+cleancolumn <- colSums(is.na(training))/nrow(training) < 0.95
+cleantraining <- training[,cleancolumn]
+
+# Verifying whether we have removed correctly 
+
+colSums(is.na(cleantraining))/nrow(cleantraining)
+
+colSums(is.na(cleantraining))
+```
+
+Step 2:
+
+(i)We will remove unnecessary columns
+(ii)Partition the trainingdata properly
+(iii)Will do same for testing data
+
+```{r,echo=TRUE}
+cleantraining <- cleantraining [,-c(1:7)]
+cleantest <- testing[,-c(1:7)]
+set.seed(34)
+inTrainIndex <- caret::createDataPartition(cleantraining$classe,p=0.75,list=FALSE)
+trainingdata <- cleantraining[inTrainIndex,]
+trainingcrossvalue  <- cleantraining[-inTrainIndex,]
+allNames <- names(cleantraining)
+cleantest <- testing[,allNames[1:52]]
+```
+
+# ML Algorithm-Decision Tree
+
+```{r,echo=TRUE}
+decisionTree <- train(classe ~., method='rpart', data=trainingdata)
+decisionTreePrediction <- predict(decisionTree, trainingcrossvalue)
+trainingcrossvalue$classe <- as.factor(trainingcrossvalue$classe)
+confusionMatrix(trainingcrossvalue$classe, decisionTreePrediction)
+rpart.plot(decisionTree$finalModel)
+```
+
+# ML Algorithm-Random Forest
+
+```{r,echo=TRUE}
+randomforest <- train(classe ~., method='rf', data=trainingdata, ntree=50)
+rfPrediction <- predict(randomforest, trainingcrossvalue)
+confusionMatrix(trainingcrossvalue$classe, rfPrediction)
+predict(randomforest, cleantest)
+```
+
+## Conclusion
+
+We have used two machine learning algorithms.Among them random forest worked much better than the other one.So inspite of decision tree algorithm,we should use randomforest algorithm.
